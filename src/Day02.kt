@@ -3,7 +3,7 @@ fun main() {
     val initialState: Memory = input.split(",").mapIndexed { index, s -> index to s.toInt() }.toMap()
 
     val answer1 = runProgram(memory = initialState, noun = 12, verb = 2).address(0)
-    println(answer1) // 4714701
+    println(answer1)
 
     data class Result(val noun: Int, val verb: Int, val address0: Int)
 
@@ -16,7 +16,7 @@ fun main() {
         }
     }.first { result -> result.address0 == target }
     val answer2 = 100 * match.noun + match.verb
-    println(answer2) // 5121
+    println(answer2)
 }
 
 typealias Memory = Map<Int, Int>
