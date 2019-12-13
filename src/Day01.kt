@@ -1,3 +1,5 @@
+package day01
+
 fun main() {
     val answerPart1 = answer { calculateFuel(it) }
     println(answerPart1)

@@ -1,3 +1,5 @@
+package day03
+
 import kotlin.math.absoluteValue
 
 fun main() {

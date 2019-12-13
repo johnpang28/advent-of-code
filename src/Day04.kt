@@ -1,3 +1,5 @@
+package day04
+
 fun main() {
     val range = 130254..678275
 
