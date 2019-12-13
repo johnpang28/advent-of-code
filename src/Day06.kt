@@ -2,16 +2,38 @@ package day06
 
 fun main() {
     val orbitMap = parse(input)
-    val answer1 = countOrbits("COM", 1, orbitMap)
-    println(answer1) // 271151
+    val answer1 = countAllOrbits(orbitMap)
+    println(answer1)
+
+    val answer2 = orbitalTransfers("SAN", "YOU", orbitMap)
+    println(answer2)
 }
 
 typealias OrbitMap = Map<String, List<String>>
+const val CENTRE_OF_MASS = "COM"
+fun OrbitMap.getDirectOrbit(satelite: String): String = this.entries.find { it.value.contains(satelite) }?.key!!
 
-fun countOrbits(currentPosition: String, depth: Int, orbitMap: OrbitMap): Int {
-    return orbitMap[currentPosition]?.let { satelites ->
-        satelites.size * depth + satelites.map { satelite -> countOrbits(satelite, depth + 1, orbitMap) }.sum()
-    } ?: 0
+fun countAllOrbits(orbitMap: OrbitMap): Int {
+    fun loop(currentPosition: String, depth: Int): Int {
+        return orbitMap[currentPosition]?.let { satelites ->
+            satelites.size * depth + satelites.map { satelite -> loop(satelite, depth + 1) }.sum()
+        } ?: 0
+    }
+    return loop(CENTRE_OF_MASS, 1)
+}
+
+fun orbitalTransfers(satelite1: String, satelite2: String, orbitMap: OrbitMap): Int {
+    val path1 = pathToCentre(satelite1, orbitMap)
+    val path2 = pathToCentre(satelite2, orbitMap)
+    return ((path1.toSet() + path2.toSet()) - (path1.toSet() intersect path2.toSet())).count()
+}
+
+fun pathToCentre(satelite: String, orbitMap: OrbitMap): List<String> {
+    fun loop(s: String, accPath: List<String>): List<String> {
+        val orbiting = orbitMap.getDirectOrbit(s)
+        return if (orbiting == CENTRE_OF_MASS) accPath + CENTRE_OF_MASS else loop(orbiting, accPath + orbiting)
+    }
+    return loop(satelite, emptyList())
 }
 
 fun parse(s: String): OrbitMap = s.lines().map {
