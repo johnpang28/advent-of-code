@@ -12,41 +12,45 @@ enum class Mode { Position, Immediate }
 
 data class Operation(val opCode: Int, val paramModes: List<Mode>)
 
-//data class Result(val memory: Memory, val output: List<Int>, val newPointer: Int? = null)
-
 data class ComputerState(val memory: Memory, val pointer: Int, val input: Int?, val output: List<Int>)
 
 val opCodeRegex = Regex("""^[01]{0,3}[0-9]{1,2}$""")
 
-fun doOps(state: ComputerState): ComputerState {
+fun isAwaitingInput(state: ComputerState): Boolean = opCode(state) == 3
 
-    fun nextInstruction(): Instruction? {
+fun isCompleted(state: ComputerState): Boolean = opCode(state) == 99
 
-        fun parseOp(x: Int): Operation? {
-            val opString = x.toString().padStart(5, '0')
-            return if (opCodeRegex.matches(opString)) {
-                Operation(
-                    opCode = opString.takeLast(2).toInt(),
-                    paramModes = listOf(
-                        if (opString[2] == '0') Position else Immediate,
-                        if (opString[1] == '0') Position else Immediate,
-                        if (opString[0] == '0') Position else Immediate)
-                )
-            } else null
-        }
+private fun opCode(state: ComputerState) = nextInstruction(state)?.operation?.opCode
 
-        return with(state) {
-            parseOp(memory.address(pointer))?.let { op ->
-                when (op.opCode) {
-                    1, 2, 7, 8 -> Instruction(op, (1..3).map { memory.address(pointer + it) })
-                    3, 4 -> Instruction(op, listOf(memory.address(pointer + 1)))
-                    5, 6 -> Instruction(op, (1..2).map { memory.address(pointer + it) })
-                    99 -> Instruction(op, emptyList())
-                    else -> null
-                }
+
+fun nextInstruction(state: ComputerState): Instruction? {
+    fun parseOp(x: Int): Operation? {
+        val opString = x.toString().padStart(5, '0')
+        return if (opCodeRegex.matches(opString)) {
+            Operation(
+                opCode = opString.takeLast(2).toInt(),
+                paramModes = listOf(
+                    if (opString[2] == '0') Position else Immediate,
+                    if (opString[1] == '0') Position else Immediate,
+                    if (opString[0] == '0') Position else Immediate)
+            )
+        } else null
+    }
+
+    return with(state) {
+        parseOp(memory.address(pointer))?.let { op ->
+            when (op.opCode) {
+                1, 2, 7, 8 -> Instruction(op, (1..3).map { memory.address(pointer + it) })
+                3, 4 -> Instruction(op, kotlin.collections.listOf(memory.address(pointer + 1)))
+                5, 6 -> Instruction(op, (1..2).map { memory.address(pointer + it) })
+                99 -> Instruction(op, kotlin.collections.emptyList())
+                else -> null
             }
         }
     }
+}
+
+fun doOps(state: ComputerState): ComputerState {
 
     fun processInstruction(instruction: Instruction): ComputerState {
 
@@ -88,7 +92,7 @@ fun doOps(state: ComputerState): ComputerState {
 
     }
 
-    return nextInstruction()?.let { instruction ->
+    return nextInstruction(state)?.let { instruction ->
         if (instruction.operation.opCode == 99 || (instruction.operation.opCode == 3 && state.input == null)) state
         else {
             val newState = processInstruction(instruction)
