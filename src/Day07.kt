@@ -19,13 +19,13 @@ fun main() {
 
 }
 
-fun amplify(phases: List<Int>, data: String): Int? {
+fun amplify(phases: List<Int>, data: String): Long? {
 
     fun initPhases(): List<ComputerState> = (0..4).map { i ->
-        doOps(ComputerState(data.asMemory(), 0, phases[i], emptyList()))
+        doOps(ComputerState(data.asMemory(), 0, phases[i].toLong(), emptyList()))
     }
 
-    fun loop(inputToAmplifiers: Pair<Int, List<ComputerState>>): Pair<Int, List<ComputerState>> {
+    fun loop(inputToAmplifiers: Pair<Long, List<ComputerState>>): Pair<Long, List<ComputerState>> {
         val (input, amplifiers) = inputToAmplifiers
         return when {
             amplifiers.all { isCompleted(it) } -> inputToAmplifiers
@@ -40,7 +40,7 @@ fun amplify(phases: List<Int>, data: String): Int? {
     }
 
     return if (phases.size == 5) {
-        loop(0 to initPhases()).second.last().output.last()
+        loop(0L to initPhases()).second.last().output.last()
     } else null
 }
 
