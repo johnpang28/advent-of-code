@@ -1,19 +1,22 @@
 import Mode.Immediate
 import Mode.Position
 import Mode.Relative
+import java.math.BigInteger
+import java.math.BigInteger.ONE
+import java.math.BigInteger.ZERO
 
-typealias Memory = Map<Long, Long>
-fun Memory.update(kv: Pair<Long, Long>): Memory = (entries.filter { it.key != kv.first }.map { it.toPair() } + kv).toMap()
-fun Memory.address(address: Long): Long = getOrDefault(address, 0)
-fun String.asMemory(): Memory = split(",").mapIndexed { index, s -> index.toLong() to s.toLong() }.toMap()
+typealias Memory = Map<Long, BigInteger>
+fun Memory.update(kv: Pair<Long, BigInteger>): Memory = (entries.filter { it.key != kv.first }.map { it.toPair() } + kv).toMap()
+fun Memory.address(address: Long): BigInteger = getOrDefault(address, ZERO)
+fun String.asMemory(): Memory = split(",").mapIndexed { index, s -> index.toLong() to s.toBigInteger() }.toMap()
 
-data class Instruction(val operation: Operation, val parameters: List<Long>)
+data class Instruction(val operation: Operation, val parameters: List<BigInteger>)
 
 enum class Mode { Position, Immediate, Relative }
 
 data class Operation(val opCode: Int, val paramModes: List<Mode>)
 
-data class ComputerState(val memory: Memory, val pointer: Long, val input: Long?, val output: List<Long>, val relativeBase: Long = 0)
+data class ComputerState(val memory: Memory, val pointer: Long, val input: Long?, val output: List<BigInteger>, val relativeBase: Long = 0)
 
 val opCodeRegex = Regex("""^[012]{0,3}[0-9]{1,2}$""")
 
@@ -24,7 +27,7 @@ fun isCompleted(state: ComputerState): Boolean = opCode(state) == 99
 private fun opCode(state: ComputerState) = nextInstruction(state)?.operation?.opCode
 
 fun nextInstruction(state: ComputerState): Instruction? {
-    fun parseOp(x: Long): Operation? {
+    fun parseOp(x: BigInteger): Operation? {
         fun Char.toMode() = when (this) {
             '0' -> Position
             '1' -> Immediate
@@ -57,61 +60,60 @@ fun nextInstruction(state: ComputerState): Instruction? {
     }
 }
 
-fun doOps(state: ComputerState): ComputerState {
+tailrec fun doOps(state: ComputerState): ComputerState {
 
     fun processInstruction(instruction: Instruction): ComputerState {
 
         fun movePointer(): Long = state.pointer + instruction.parameters.size + 1
 
-        fun read(paramIndex: Int): Long = with(instruction) {
+        fun read(paramIndex: Int): BigInteger = with(instruction) {
             when (operation.paramModes[paramIndex]) {
-                Position -> state.memory.address(parameters[paramIndex])
+                Position -> state.memory.address(parameters[paramIndex].toLong())
                 Immediate -> parameters[paramIndex]
-                Relative -> state.memory.address(parameters[paramIndex] + state.relativeBase)
+                Relative -> state.memory.address(parameters[paramIndex].toLong() + state.relativeBase)
             }
         }
 
-        fun writeAndMovePointer(value: Long, paramIndex: Int = 2): ComputerState = with(instruction) {
+        fun writeAndMovePointer(value: BigInteger, paramIndex: Int = 2): ComputerState = with(instruction) {
             when (operation.paramModes[paramIndex]) {
-                Relative -> state.copy(memory = state.memory.update(instruction.parameters[paramIndex] + state.relativeBase to value), pointer = movePointer())
-                else -> state.copy(memory = state.memory.update(instruction.parameters[paramIndex] to value), pointer = movePointer())
+                Relative -> state.copy(memory = state.memory.update(instruction.parameters[paramIndex].toLong() + state.relativeBase to value), pointer = movePointer())
+                else -> state.copy(memory = state.memory.update(instruction.parameters[paramIndex].toLong() to value), pointer = movePointer())
             }
         }
 
-        fun binaryInstruction(f: (Long, Long) -> Long): ComputerState = with(instruction) {
+        fun binaryInstruction(f: (BigInteger, BigInteger) -> BigInteger): ComputerState = with(instruction) {
             val result = f(read(0), read(1))
             writeAndMovePointer(result)
         }
 
-        fun Boolean.toLong() = if (this) 1L else 0L
+        fun Boolean.toBigInteger() = if (this) ONE else ZERO
 
         return when (instruction.operation.opCode) {
-            1 -> binaryInstruction(Long::plus)
-            2 -> binaryInstruction(Long::times)
+            1 -> binaryInstruction(BigInteger::plus)
+            2 -> binaryInstruction(BigInteger::times)
             3 -> state.input?.let {
-                writeAndMovePointer(it, 0).copy(input = null)
+                writeAndMovePointer(it.toBigInteger(), 0).copy(input = null)
             } ?: state
             4 -> state.copy(pointer = movePointer(), output = state.output + read(0))
             5 -> {
-                if (read(0) != 0L) state.copy(pointer = read(1))
+                if (read(0) != ZERO) state.copy(pointer = read(1).toLong())
                 else state.copy(pointer = movePointer())
             }
             6 -> {
-                if (read(0) == 0L) state.copy(pointer = read(1))
+                if (read(0) == ZERO) state.copy(pointer = read(1).toLong())
                 else state.copy(pointer = movePointer())
             }
-            7 -> writeAndMovePointer((read(0) < read(1)).toLong())
-            8 -> writeAndMovePointer((read(0) == read(1)).toLong())
-            9 -> state.copy(pointer = movePointer(), relativeBase = state.relativeBase + read(0))
+            7 -> writeAndMovePointer((read(0) < read(1)).toBigInteger())
+            8 -> writeAndMovePointer((read(0) == read(1)).toBigInteger())
+            9 -> state.copy(pointer = movePointer(), relativeBase = state.relativeBase + read(0).toLong())
             else -> state.copy(pointer = movePointer())
         }
     }
 
-    return nextInstruction(state)?.let { instruction ->
-        if (instruction.operation.opCode == 99 || (instruction.operation.opCode == 3 && state.input == null)) state
-        else {
-            val newState = processInstruction(instruction)
-            doOps(newState)
-        }
-    } ?: state
+    val nextInstruction = nextInstruction(state)
+
+    return if (nextInstruction == null) state else {
+        if (nextInstruction.operation.opCode == 99 || (nextInstruction.operation.opCode == 3 && state.input == null)) state
+        else doOps(processInstruction(nextInstruction))
+    }
 }

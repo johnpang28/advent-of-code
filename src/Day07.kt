@@ -32,7 +32,7 @@ fun amplify(phases: List<Int>, data: String): Long? {
             amplifiers.all { isAwaitingInput(it)} -> {
                 loop(amplifiers.fold(Pair(input, emptyList())) { acc, next ->
                     val newState = doOps(next.copy(input = acc.first))
-                    Pair(newState.output.last(), acc.second + newState)
+                    Pair(newState.output.last().toLong(), acc.second + newState)
                 })
             }
             else -> inputToAmplifiers
@@ -40,7 +40,7 @@ fun amplify(phases: List<Int>, data: String): Long? {
     }
 
     return if (phases.size == 5) {
-        loop(0L to initPhases()).second.last().output.last()
+        loop(0L to initPhases()).second.last().output.last().toLong()
     } else null
 }
 
