@@ -1,3 +1,6 @@
+/**
+ * https://adventofcode.com/2019/day/3
+ */
 package day03
 
 import kotlin.math.absoluteValue

@@ -1,3 +1,6 @@
+/**
+ * https://adventofcode.com/2019/day/4
+ */
 package day04
 
 fun main() {

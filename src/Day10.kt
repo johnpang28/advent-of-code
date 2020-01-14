@@ -1,3 +1,6 @@
+/**
+ * https://adventofcode.com/2019/day/10
+ */
 package day10
 
 import java.lang.Math.PI

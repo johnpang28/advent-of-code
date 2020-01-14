@@ -1,3 +1,6 @@
+/**
+ * https://adventofcode.com/2019/day/11
+ */
 package day11
 
 import ComputerState
